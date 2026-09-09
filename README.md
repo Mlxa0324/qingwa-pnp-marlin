@@ -1,154 +1,281 @@
-<p align="center"><img src="buildroot/share/pixmaps/logo/marlin-outrun-nf-500.png" height="250" alt="MarlinFirmware's logo" /></p>
-
-<h1 align="center">Marlin 3D Printer Firmware</h1>
-
 <p align="center">
-    <a href="/LICENSE"><img alt="GPL-V3.0 License" src="https://img.shields.io/github/license/marlinfirmware/marlin.svg"></a>
-    <a href="https://github.com/MarlinFirmware/Marlin/graphs/contributors"><img alt="Contributors" src="https://img.shields.io/github/contributors/marlinfirmware/marlin.svg"></a>
-    <a href="https://github.com/MarlinFirmware/Marlin/releases"><img alt="Last Release Date" src="https://img.shields.io/github/release-date/MarlinFirmware/Marlin"></a>
-    <a href="https://github.com/MarlinFirmware/Marlin/actions"><img alt="CI Status" src="https://github.com/MarlinFirmware/Marlin/actions/workflows/test-builds.yml/badge.svg"></a>
-    <a href="https://github.com/sponsors/thinkyhead"><img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/thinkyhead?color=db61a2"></a>
-    <br />
-    <a href="https://fosstodon.org/@marlinfirmware"><img alt="Follow MarlinFirmware on Mastodon" src="https://img.shields.io/mastodon/follow/109450200866020466?domain=https%3A%2F%2Ffosstodon.org&logoColor=%2300B&style=social"></a>
+  <b>🐸 青蛙贴片机 固件 · qingwa-pnp-marlin</b><br/>
+  基于 Marlin 2.1.x + Opulo LumenPnP REV5 主板的贴片机专用固件
 </p>
 
-Additional documentation can be found at the [Marlin Home Page](https://marlinfw.org/).
-Please test this firmware and let us know if it misbehaves in any way. Volunteers are standing by!
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="GPL-3.0"></a>
+  <img src="https://img.shields.io/badge/Marlin-2.1.x-important.svg" alt="Marlin 2.1.x">
+  <img src="https://img.shields.io/badge/Board-LumenPnP%20REV5-success.svg" alt="LumenPnP REV5">
+  <img src="https://img.shields.io/badge/MCU-STM32F407VET6-informational.svg" alt="STM32F407VET6">
+  <img src="https://img.shields.io/badge/Build-PlatformIO-orange.svg" alt="PlatformIO">
+</p>
 
-## Marlin 2.1 Bugfix Branch
+<p align="center"><strong>简体中文</strong> | <a href="README.en.md">English</a></p>
 
-__Not for production use. Use with caution!__
+---
 
-Marlin 2.1 takes this popular RepRap firmware to the next level by adding support for much faster 32-bit and ARM-based boards while improving support for 8-bit AVR boards. Read about Marlin's decision to use a "Hardware Abstraction Layer" below.
+## 目录
 
-This branch is for patches to the latest 2.1.x release version. Periodically this branch will form the basis for the next minor 2.1.x release.
+- [📖 项目简介](#-项目简介)
+- [✨ 功能特性](#-功能特性)
+- [🧱 硬件与引脚](#-硬件与引脚)
+- [🏗 目录结构](#-目录结构)
+- [⚙️ 构建与烧录](#️-构建与烧录)
+- [🔧 配置与版本管理](#-配置与版本管理)
+- [🧰 常用 G 代码](#-常用-g-代码)
+- [🛠 常见问题](#-常见问题)
+- [🤝 致谢与许可证](#-致谢与许可证)
 
-Download earlier versions of Marlin on the [Releases page](https://github.com/MarlinFirmware/Marlin/releases).
+---
 
-## Example Configurations
+## 📖 项目简介
 
-Before you can build Marlin for your machine you'll need a configuration for your specific hardware. Upon request, your vendor will be happy to provide you with the complete source code and configurations for your machine, but you'll need to get updated configuration files if you want to install a newer version of Marlin. Fortunately, Marlin users have contributed dozens of tested configurations to get you started. Visit the [MarlinFirmware/Configurations](https://github.com/MarlinFirmware/Configurations) repository to find the right configuration for your hardware.
+本项目是 **「青蛙贴片机」专用固件**。它并非 3D 打印机固件，而是把一个通用开源固件
+**Marlin** 改造为 **SMT 贴片机（Pick-and-Place）的运动控制器固件**。
 
-## Building Marlin 2.1
+固件面向 **Opulo LumenPnP Motherboard REV05**（MCU：STMicroelectronics **STM32F407VET6**，
+ARM Cortex-M4，512 KB Flash / 192 KB SRAM）编写。REV5 主板是一块六轴贴片机控制板，
+自带 TMC 步进驱动接口、限位、送料器信号、RS485 与 RGB 灯带等贴片机需要的板载资源。
 
-To build and upload Marlin you will use one of these tools:
+为达到"纯运动控制"目标，本固件在配置层面移除了 3D 打印相关逻辑：
 
-- The free [Visual Studio Code](https://code.visualstudio.com/download) using the [Auto Build Marlin](https://marlinfw.org/docs/basics/auto_build_marlin.html) extension.
-- The free [Arduino IDE](https://www.arduino.cc/en/main/software) : See [Building Marlin with Arduino](https://marlinfw.org/docs/basics/install_arduino.html)
-- You can also use VSCode with devcontainer : See [Installing Marlin (VSCode devcontainer)](http://marlinfw.org/docs/basics/install_devcontainer_vscode.html).
+| 项目 | 本固件 |
+|------|--------|
+| `EXTRUDERS` | `0`（无挤出机） |
+| 温度传感器 | 全部关闭（无加热/热床/风扇温控） |
+| 轴定义 | X / Y / Y2 / Z / I / J 六路步进 |
+| 驱动类型 | 全部 TMC2209（单线 UART） |
+| 串口 | USB CDC（`SERIAL_PORT -1`）@ 250000 |
 
-Marlin is optimized to build with the **PlatformIO IDE** extension for **Visual Studio Code**. You can still build Marlin with **Arduino IDE**, and we hope to improve the Arduino build experience, but at this time PlatformIO is the better choice.
+固件通过 USB 串口接收 G 代码 / 状态查询，可与 OpenPnP 等上位机软件配合完成
+自动贴装流程。
 
-## Hardware Abstraction Layer (HAL)
+> 该仓库从上游 **Marlin 2.1.x** 与 **Opulo LumenPnP** 开源硬件/软件生态定制而来，
+> 保留了 Marlin 强大的运动规划与 HAL 分层结构，并加入了 Opulo 主板定义与多版本配置。
 
-Marlin includes an abstraction layer to provide a common API for all the platforms it targets. This allows Marlin code to address the details of motion and user interface tasks at the lowest and highest levels with no system overhead, tying all events directly to the hardware clock.
+---
 
-Every new HAL opens up a world of hardware. At this time we need HALs for RP2040 and the Duet3D family of boards. A HAL that wraps an RTOS is an interesting concept that could be explored. Did you know that Marlin includes a Simulator that can run on Windows, macOS, and Linux? Join the Discord to help move these sub-projects forward!
+## ✨ 功能特性
 
-## 8-Bit AVR Boards
+- **六轴独立步进**：X / Y / Y2 / Z / I / J 各轴独立 STEP/DIR/EN 引脚与单线 TMC UART
+  回读（软串口 19200 baud），全轴 **TMC2209**。
+- **失速 / 堵转检测信号（DIAG）**：六轴 DIAG 引脚直接引出，可接入上位机做堵转判断。
+- **纯运动 / IO 控制器**：`EXTRUDERS 0`、全部温度传感器关闭，3D 打印热管理路径被裁掉，
+  中断与定时器资源优先保证运动控制。
+- **完善的板载外设定义**：
+  - X / Y / Z 三路限位开关
+  - 4 路风扇 / 驱动输出（`FAN0`–`FAN3`）、蜂鸣器
+  - 双路 **NeoPixel** RGB 灯带（`PC7` / `PC8`）
+  - 8 脚 **AUX** 扩展口：3×PWM + 1×模拟输入 + I²C（SCL/SDA）
+  - **RS485** 收发使能脚（用于外部送料器 / 通讯板）
+  - 4 个 ID 引脚（`PD0`–`PD3`），支持硬件版本识别
+- **参数存储**：SRAM EEPROM 仿真（8 KB），配合上位机使用不掉电参数重写。
+- **G 代码兼容**：完整保留 Marlin 的 G/M 命令体系与快速解析器。
+- **多硬件版本配置快照**：REV3 / REV4 + 各代送料器（v3.0 / v3.1 / PWM-AUX）配置保留，
+  便于对照、回归与硬件升级。
+- **继承 Marlin 2.1 生态**：HAL 分层（本仓库重点使用 STM32 HAL）、PlatformIO 一键构建、
+  官方 CI 工作流、Auto Build 脚本。
 
-A core tenet of this project is to keep supporting 8-bit AVR boards while also maintaining a single codebase that applies equally to all machines. We want casual hobbyists to benefit from the community's innovations as much as possible just as much as those with fancier machines. Plus, those old AVR-based machines are often the best for your testing and feedback!
+---
 
-### Supported Platforms
+## 🧱 硬件与引脚
 
-  Platform|MCU|Example Boards
-  --------|---|-------
-  [Arduino AVR](https://www.arduino.cc/)|ATmega|RAMPS, Melzi, RAMBo
-  [Teensy++ 2.0](https://www.microchip.com/en-us/product/AT90USB1286)|AT90USB1286|Printrboard
-  [Arduino Due](https://www.arduino.cc/en/Guide/ArduinoDue)|SAM3X8E|RAMPS-FD, RADDS, RAMPS4DUE
-  [ESP32](https://github.com/espressif/arduino-esp32)|ESP32|FYSETC E4, E4d@BOX, MRR
-  [LPC1768](https://www.nxp.com/products/processors-and-microcontrollers/arm-microcontrollers/general-purpose-mcus/lpc1700-cortex-m3/512-kb-flash-64-kb-sram-ethernet-usb-lqfp100-package:LPC1768FBD100)|ARM® Cortex-M3|MKS SBASE, Re-ARM, Selena Compact
-  [LPC1769](https://www.nxp.com/products/processors-and-microcontrollers/arm-microcontrollers/general-purpose-mcus/lpc1700-cortex-m3/512-kb-flash-64-kb-sram-ethernet-usb-lqfp100-package:LPC1769FBD100)|ARM® Cortex-M3|Smoothieboard, Azteeg X5 mini, TH3D EZBoard
-  [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html)|ARM® Cortex-M3|Malyan M200, GTM32 Pro, MKS Robin, BTT SKR Mini
-  [STM32F401](https://www.st.com/en/microcontrollers-microprocessors/stm32f401.html)|ARM® Cortex-M4|ARMED, Rumba32, SKR Pro, Lerdge, FYSETC S6, Artillery Ruby
-  [STM32F7x6](https://www.st.com/en/microcontrollers-microprocessors/stm32f7x6.html)|ARM® Cortex-M7|The Borg, RemRam V1
-  [STM32G0B1RET6](https://www.st.com/en/microcontrollers-microprocessors/stm32g0x1.html)|ARM® Cortex-M0+|BigTreeTech SKR mini E3 V3.0
-  [STM32H743xIT6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743-753.html)|ARM® Cortex-M7|BigTreeTech SKR V3.0, SKR EZ V3.0, SKR SE BX V2.0/V3.0
-  [SAMD51P20A](https://www.adafruit.com/product/4064)|ARM® Cortex-M4|Adafruit Grand Central M4
-  [Teensy 3.5](https://www.pjrc.com/store/teensy35.html)|ARM® Cortex-M4|
-  [Teensy 3.6](https://www.pjrc.com/store/teensy36.html)|ARM® Cortex-M4|
-  [Teensy 4.0](https://www.pjrc.com/store/teensy40.html)|ARM® Cortex-M7|
-  [Teensy 4.1](https://www.pjrc.com/store/teensy41.html)|ARM® Cortex-M7|
-  Linux Native|x86/ARM/etc.|Raspberry Pi
+### 主板信息
 
-## Submitting Patches
+| 项 | 值 |
+|----|----|
+| 固件上报主板名 | `LumenPnP Motherboard REV05` |
+| 固件上报机器名 | `LumenPnP` |
+| MCU | STM32F407VET6（ARM Cortex-M4 @ 168 MHz） |
+| Flash / SRAM | 512 KB / 192 KB |
+| 驱动接口 | 6 × TMC2209（单线 UART 回读） |
 
-Proposed patches should be submitted as a Pull Request against the ([bugfix-2.1.x](https://github.com/MarlinFirmware/Marlin/tree/bugfix-2.1.x)) branch.
+### 关键引脚速查（来自 `Marlin/src/pins/stm32f4/pins_OPULO_LUMEN_REV5.h`）
 
-- This branch is for fixing bugs and integrating any new features for the duration of the Marlin 2.1.x life-cycle.
-- Follow the [Coding Standards](https://marlinfw.org/docs/development/coding_standards.html) to gain points with the maintainers.
-- Please submit Feature Requests and Bug Reports to the [Issue Queue](https://github.com/MarlinFirmware/Marlin/issues/new/choose). Support resources are also listed there.
-- Whenever you add new features, be sure to add tests to `buildroot/tests` and then run your tests locally, if possible.
-  - It's optional: Running all the tests on Windows might take a long time, and they will run anyway on GitHub.
-  - If you're running the tests on Linux (or on WSL with the code on a Linux volume) the speed is much faster.
-  - You can use `make tests-all-local` or `make tests-single-local TEST_TARGET=...`.
-  - If you prefer Docker you can use `make tests-all-local-docker` or `make tests-all-local-docker TEST_TARGET=...`.
+| 功能 | 引脚 |
+|------|------|
+| X / Y / Z 限位 | `PC6` / `PD15` / `PD14` |
+| X / Y / Y2 / Z / I / J DIAG | `PB10` / `PB11` / `PC12` / `PB5` / `PC10` / `PC11` |
+| X / Y / Y2 / Z / I / J 步进 | `PB15` / `PE15` / `PD6` / `PE7` / `PC4` / `PE11` |
+| NeoPixel ×2 | `PC7` / `PC8` |
+| 蜂鸣器 | `PA7` |
+| 风扇 / 驱动 0–3 | `PB8` / `PB9` / `PE5` / `PE6` |
+| I²C（SDA / SCL） | `PB7` / `PB6` |
+| SPI（MISO/MOSI/SCK） | `PB4` / `PB5` / `PB3` |
+| RS485 收发使能 | `PD11` / `PD12` |
+| ID 引脚 | `PD0`–`PD3` |
 
-## Marlin Support
+### REV05 AUX 扩展口（8 脚）
 
-The Issue Queue is reserved for Bug Reports and Feature Requests. To get help with configuration and troubleshooting, please use the following resources:
+```
+             _________
+      3.3V  |  1   2  |  GND
+    PWM1 PA5|  3   4  | PC0 A1 (模拟输入)
+    PWM2 PA6|  5   6  | SCL
+    PWM3 PA15| 7   8  | SDA
+             ---------
+```
 
-- [Marlin Documentation](https://marlinfw.org) - Official Marlin documentation
-- [Marlin Discord](https://discord.gg/n5NJ59y) - Discuss issues with Marlin users and developers
-- Facebook Group ["Marlin Firmware"](https://www.facebook.com/groups/1049718498464482/)
-- RepRap.org [Marlin Forum](https://forums.reprap.org/list.php?415)
-- Facebook Group ["Marlin Firmware for 3D Printers"](https://www.facebook.com/groups/3Dtechtalk/)
-- [Marlin Configuration](https://www.youtube.com/results?search_query=marlin+configuration) on YouTube
+---
 
-## Contributors
+## 🏗 目录结构
 
-Marlin is constantly improving thanks to a huge number of contributors from all over the world bringing their specialties and talents. Huge thanks are due to [all the contributors](https://github.com/MarlinFirmware/Marlin/graphs/contributors) who regularly patch up bugs, help direct traffic, and basically keep Marlin from falling apart. Marlin's continued existence would not be possible without them.
+```text
+qingwa-pnp-marlin/
+├── .devcontainer/              # VS Code 开发容器（构建环境一键起）
+├── .github/                    # GitHub CI / 社区配置（test-builds 等工作流）
+├── .trellis/                   # AI 辅助开发工作流脚手架（可选）
+├── Marlin/                     # ⭐ 固件源码与配置（核心）
+│   ├── Configuration.h         #   当前激活配置（REV5）
+│   ├── Configuration_adv.h     #   进阶配置
+│   ├── config.ini              #   Marlin 编译期配置（ini 语法，默认未启用）
+│   ├── Makefile                #   供 pio/arduino 的 make 入口
+│   ├── Version.h               #   版本字符串（构建期覆盖用）
+│   ├── rev3-feeder-config/     #   历史：REV3 送料器配置快照
+│   ├── rev4-v3.0-feeder-config/#   历史：REV4 + 送料器 v3.0 配置快照
+│   ├── rev4-v3.1-feeder-config/#   历史：REV4 + 送料器 v3.1 配置快照
+│   ├── rev4-v3.1-feeder-pwm-aux-config/  # REV4 v3.1 + PWM/AUX 配置快照
+│   ├── rev5-config/            #   与当前 Configuration.* 一致的 REV5 快照
+│   └── src/                    #   Marlin 核心源码
+│       ├── MarlinCore.cpp|.h   #     固件入口
+│       ├── HAL/                #     硬件抽象层（STM32 等）
+│       ├── core/               #     boards.h 主板编号 / 宏
+│       ├── pins/               #     各板引脚定义
+│       │   └── stm32f4/pins_OPULO_LUMEN_REV5.h   # ← REV5 引脚
+│       ├── module/             #     planner / stepper / endstop …
+│       ├── gcode/              #     G/M 代码解析与执行
+│       ├── feature/ libs/ lcd/ sd/ inc/ tests/
+├── buildroot/                  # PlatformIO 板级支持 / 脚本 / 测试
+│   ├── share/PlatformIO/
+│   │   ├── boards/marlin_opulo_lumen_rev5.json   # REV5 板级 JSON
+│   │   └── scripts/            #   configuration.py 等构建脚本
+│   ├── share/vscode/auto_build.py                #   Auto Build（PIO Build）
+│   └── tests/                  #   make tests-all-local 等自动化测试
+├── config/  docker/  docs/     # 文档 / Docker / dev 文档（Bresenham、Serial…）
+├── ini/                        # PlatformIO 环境矩阵（按芯片分类）
+│   └── stm32f4.ini             #   内含 [env:Opulo_Lumen_REV5]
+├── .editorconfig  .gitattributes
+├── platformio.ini              # ⭐ PlatformIO 工程入口（default_envs = Opulo_Lumen_REV5）
+├── Makefile                    # make 快捷入口
+├── marlin.code-workspace       # VS Code 多根工作区
+├── process-palette.json        # VS Code「Process Palette」→ PIO Build 命令定义
+├── LICENSE                     # GPL-3.0
+└── README.md / README.en.md    # 多语言说明（中文默认）
+```
 
-## Administration
+---
 
-Regular users can open and close their own issues, but only the administrators can do project-related things like add labels, merge changes, set milestones, and kick trolls. The current Marlin admin team consists of:
+## ⚙️ 构建与烧录
 
-<table align="center">
-<tr><td>Project Maintainer</td></tr>
-<tr><td>
+### 环境准备
 
- 🇺🇸  **Scott Lahteine**
-       [@thinkyhead](https://github.com/thinkyhead)
-       [<kbd>  Donate 💸  </kbd>](https://www.thinkyhead.com/donate-to-marlin)
+- 安装 [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation.html)，
+  推荐用 **VS Code + PlatformIO IDE** 或 Marlin 的 **Auto Build** 插件/脚本
+  （`buildroot/share/vscode/auto_build.py`，或 `process-palette.json` 定义的
+  「PIO Build」命令）。
+- 默认构建目标已经设为 REV5 主板，无需额外选择。
 
-</td><td>
+### 命令行
 
- 🇺🇸  **Roxanne Neufeld**
-       [@Roxy-3D](https://github.com/Roxy-3D)
+```bash
+# 编译（默认 env 即 Opulo_Lumen_REV5）
+pio run
 
- 🇺🇸  **Keith Bennett**
-       [@thisiskeithb](https://github.com/thisiskeithb)
-       [<kbd>  Donate 💸  </kbd>](https://github.com/sponsors/thisiskeithb)
+# 明确指定目标
+pio run -e Opulo_Lumen_REV5
 
- 🇺🇸  **Jason Smith**
-       [@sjasonsmith](https://github.com/sjasonsmith)
+# 烧录
+pio run -e Opulo_Lumen_REV5 -t upload
 
-</td><td>
+# 串口监视（250000 baud）
+pio device monitor -b 250000
+```
 
- 🇧🇷  **Victor Oliveira**
-       [@rhapsodyv](https://github.com/rhapsodyv)
+> 若修改了 `Configuration.h` 等配置，直接重新 `pio run` 即可；PlatformIO 会自动重建。
 
- 🇬🇧  **Chris Pepper**
-       [@p3p](https://github.com/p3p)
+### 跑官方测试（可选）
 
-🇳🇿  **Peter Ellens**
-       [@ellensp](https://github.com/ellensp)
-       [<kbd>  Donate 💸  </kbd>](https://ko-fi.com/ellensp)
+```bash
+make tests-all-local            # 本机跑全部测试
+make tests-single-local TEST_TARGET=Opulo_Lumen_REV5
+```
 
-</td><td>
+---
 
- 🇺🇸  **Bob Kuhn**
-       [@Bob-the-Kuhn](https://github.com/Bob-the-Kuhn)
+## 🔧 配置与版本管理
 
- 🇳🇱  **Erik van der Zalm**
-       [@ErikZalm](https://github.com/ErikZalm)
-       [<kbd>  Donate 💸  </kbd>](https://flattr.com/submit/auto?user_id=ErikZalm&url=https://github.com/MarlinFirmware/Marlin&title=Marlin&language=&tags=github&category=software)
+- **`Marlin/Configuration.h` / `Configuration_adv.h`**：当前仓库实际使用的激活配置
+  （对应 REV5 主板）。
+- **`Marlin/rev5-config/`**：与该激活配置一致的 REV5 快照，用于对照/归档。
+- **`Marlin/rev3-*` / `rev4-*` 目录**：历史主板与各代**送料器（Feeder）**硬件版本
+  的配置快照，升级/回退硬件时可按需取出使用。
+- **`Marlin/config.ini`**：Marlin 的 ini 编译期配置入口
+  （`[config:minimal/basic/advanced]`）。默认未启用（`ini_use_config = none`）；
+  如需用 ini 方式维护配置可开启并按需组合。
 
-</td></tr>
-</table>
+### 关于本仓库固件版本基线
 
-## License
+- 源码基线：**Marlin 2.1.x**（配置文件版本 `CONFIGURATION_H_VERSION 02010300`），
+  保留上游 `import-2.1.x`/`bugfix-2.1.x` 演进结构。
 
-Marlin is published under the [GPL license](/LICENSE) because we believe in open development. The GPL comes with both rights and obligations. Whether you use Marlin firmware as the driver for your open or closed-source product, you must keep Marlin open, and you must provide your compatible Marlin source code to end users upon request. The most straightforward way to comply with the Marlin license is to make a fork of Marlin on Github, perform your modifications, and direct users to your modified fork.
+---
 
-While we can't prevent the use of this code in products (3D printers, CNC, etc.) that are closed source or crippled by a patent, we would prefer that you choose another firmware or, better yet, make your own.
+## 🧰 常用 G 代码
+
+固件保留 Marlin 的完整 G/M 命令。贴片机调试常用示例：
+
+```gcode
+M906 X1000 Y1000        ; 设置 X/Y 电流（mA）
+M204 T4000              ; 梯形加速度
+G0 F60000               ; 快速移动示例（速度 60000 mm/min）
+
+; —— ID 引脚（PD0-PD3）以“通用 IO”方式读写示例 ——
+M42 P15 T2              ; 设置 PD0 为输入+上拉
+M43 P43                 ; 读取 PD0 电平
+M42 P31 S255            ; AUX 引脚输出高（PD13 示例）
+M42 P31 S0              ; AUX 引脚输出低
+
+; TMC 驱动状态诊断
+M122                    ; 查看各轴 TMC 状态
+```
+
+完整命令表见 [Marlin G-code 文档](https://marlinfw.org/docs/gcode/M000-M001.html)。
+
+---
+
+## 🛠 常见问题
+
+<details>
+<summary><b>烧录后没有串口？</b></summary>
+
+确认使用 USB 数据线连接 STM32 的 USB 口；首次可能需要安装驱动
+（Windows 下 STM32 USB CDC 驱动）。设备管理器/`ls /dev/tty*` 应能出现新串口，
+波特率使用 `250000`。
+</details>
+
+<details>
+<summary><b>如何确认刷入的固件版本/配置？</b></summary>
+
+上位机发送 `M115`，会回传固件信息（包含版本字符串与机器名 LumenPnP）。
+</details>
+
+<details>
+<summary><b>为什么没有温控/挤出？</b></summary>
+
+贴片机不需要 3D 打印的挤出与加热功能。本固件在 `Configuration.h` 里
+`EXTRUDERS 0` 且所有温度传感器关闭，属预期行为，而非故障。
+</details>
+
+---
+
+## 🤝 致谢与许可证
+
+- 固件本体基于 **Marlin** 开发：<https://github.com/MarlinFirmware/Marlin>
+  （作者：Scott Lahteine 及 Marlin 社区）
+- 主板支持与板级 JSON 来自 **Opulo LumenPnP** 开源硬件/软件生态：
+  <https://github.com/opulo-inc/>
+- 全部代码以 **GPL-3.0** 许可发布，见 [LICENSE](LICENSE)。按 GPL 要求，
+  基于本固件的再分发需同样开放源码并提供兼容源码。
+- 本固件供 **青蛙贴片机** 项目使用与学习交流；如有问题欢迎在
+  **Bilibili @青蛙贴片机** 评论区交流，或提交 Issue。
