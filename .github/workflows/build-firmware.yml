@@ -5,7 +5,8 @@
 #   在 GitHub Actions(云端)上把固件编译成 .bin,支持:
 #     - 手动运行(workflow_dispatch)或作为可复用 workflow(workflow_call)被宿主调用
 #     - 按「PlatformIO 环境名关键字」选择要编的构型(大小写不敏感,支持逗号多关键字)
-#     - 产物带版本号,打 zip 后上传 Actions Artifact;可选创建 GitHub Release
+#     - 产物带版本号,打 zip 后上传 Actions Artifact;默认自动创建 GitHub Release,
+#       Release 描述自动带 git 变更日志(自上次 Release → 本次 commit)
 #
 # 存放位置:
 #   默认既可放在"被编译的固件仓库"(如 qingwa-pnp-marlin)的 .github/workflows/,
@@ -17,7 +18,8 @@
 #   Actions → 选择本 workflow → Run workflow:
 #     keyword       : 填 env 名关键字,如 Opulo_Lumen_REV5 或 Opulo(编所有含 Opulo 的 env)
 #     version       : 产物版本号,留空自动 日期-短SHA
-#     create_release: 打勾则在 release_tag 指定的 tag 上创建 Release(草稿)
+#     create_release: 默认 true=自动发 GitHub Release;取消勾选则只传 Actions Artifact
+#     release_tag  : 指定 Release 的 tag;留空自动用 v+version(如 v20260909-082258-xxxx)
 #
 # 用法(被宿主仓库复用,示例 dispatch 矩阵):
 #   on:
@@ -59,12 +61,12 @@ on:
         required: false
         default: ''
       create_release:
-        description: '为 true 时用 release_tag 创建 GitHub Release(草稿)并挂产物'
+        description: '为 false 时仅传 Actions Artifact;默认 true 会自动创建 GitHub Release(描述带 git 变更日志)并挂产物'
         type: boolean
         required: false
-        default: false
+        default: true
       release_tag:
-        description: '配合 create_release 使用的 tag,如 v1.2.3'
+        description: 'Release 的 tag/名称。留空自动用 v+版本号;例 v1.2.3'
         required: false
         default: ''
 
@@ -87,10 +89,12 @@ on:
         required: false
         default: ''
       create_release:
+        description: '为 false 时仅传 Actions Artifact;默认 true 自动创建 GitHub Release(描述带 git 变更日志)并挂产物'
         type: boolean
         required: false
-        default: false
+        default: true
       release_tag:
+        description: 'Release 的 tag/名称。留空自动用 v+版本号;例 v1.2.3'
         type: string
         required: false
         default: ''
@@ -268,14 +272,65 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Create GitHub Release
-        if: ${{ inputs.create_release == 'true' && inputs.release_tag != '' }}
+      # ---- 发版:决定 tag(显式优先,否则 v+版本号)+ 生成 git 变更日志 ----
+      # 日志范围 = 上次 Release 的可达 tag → HEAD(首个 Release 则列全部提交)。
+      # 说明:日志取自构建产物 checkout(git),因此跨仓(source_repo ≠ 本 workflow 仓库)时
+      # 边界以"被构建的源码仓库"的 tag 为准;Release 本身建在运行本 workflow 的仓库。
+      - name: Resolve release tag & changelog
+        id: rel
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.ver.outputs.version }}"
+
+          # 1) Release tag:显式 release_tag 优先;否则自动 v<version>
+          if [ -n "${{ inputs.release_tag }}" ]; then
+            tag="${{ inputs.release_tag }}"
+          else
+            tag="v${version}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+          # 2) 变更日志范围:最近一个“不在当前 HEAD 上”的可达 tag → HEAD;无则全部
+          head_sha="$(git rev-parse HEAD)"
+          prev=""
+          while read -r t; do
+            [ -z "$t" ] && break
+            if [ "$(git rev-parse "$t^{commit}")" != "$head_sha" ]; then prev="$t"; break; fi
+          done < <(git tag --merged HEAD --sort=-creatordate || true)
+
+          short="$(git rev-parse --short HEAD)"
+          branch="$(git rev-parse --abbrev-ref HEAD)"
+          if [ -n "$prev" ]; then
+            header="## 变更日志(自上次 Release \`${prev}\` → \`${short}\`)"
+            range="${prev}..HEAD"
+          else
+            header="## 变更日志(仓库首个 Release → 全部提交 · \`${short}\`)"
+            range="HEAD"
+          fi
+
+          {
+            echo "${header}"
+            echo ""
+            echo "- 分支: \`${branch}\` · commit: \`${short}\`"
+            echo ""
+            git log --no-merges --pretty=format:'- `%h` %s' "${range}" | head -100
+            echo ""
+          } > release_body.md
+
+          echo "body_file=${GITHUB_WORKSPACE}/release_body.md" >> "$GITHUB_OUTPUT"
+          echo "::notice::Release tag=${tag} · 日志范围=${range}"
+
+      - name: Create / update GitHub Release
+        if: ${{ inputs.create_release == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag }}
-          name: ${{ inputs.release_tag }}
-          draft: true
-          generate_release_notes: false
+          tag_name: ${{ steps.rel.outputs.tag }}
+          name: ${{ steps.rel.outputs.tag }}
+          body_path: ${{ steps.rel.outputs.body_file }}
           files: dist/*.zip
+          update_release: true
+          draft: false
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.FIRMWARE_PAT != '' && secrets.FIRMWARE_PAT || github.token }}
