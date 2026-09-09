@@ -322,7 +322,8 @@ jobs:
           echo "::notice::Release tag=${tag} · 日志范围=${range}"
 
       - name: Create / update GitHub Release
-        if: ${{ inputs.create_release == 'true' }}
+        # type:boolean 输入在表达式里是真布尔,不能与字符串 'true' 比较,直接用本身判真
+        if: ${{ inputs.create_release }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.rel.outputs.tag }}
