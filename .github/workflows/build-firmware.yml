@@ -1,0 +1,281 @@
+# ==============================================================================
+# build-firmware.yml — 云端打包固件(.bin)并交付
+# ------------------------------------------------------------------------------
+# 作用:
+#   在 GitHub Actions(云端)上把固件编译成 .bin,支持:
+#     - 手动运行(workflow_dispatch)或作为可复用 workflow(workflow_call)被宿主调用
+#     - 按「PlatformIO 环境名关键字」选择要编的构型(大小写不敏感,支持逗号多关键字)
+#     - 产物带版本号,打 zip 后上传 Actions Artifact;可选创建 GitHub Release
+#
+# 存放位置:
+#   默认既可放在"被编译的固件仓库"(如 qingwa-pnp-marlin)的 .github/workflows/,
+#   也可平移到将来定好的"静态项目/宿主仓库"。放宿主时用 source_repo/source_ref
+#   指向要编译的固件源;编译私有固件仓库需给宿主仓库配一个 PAT 放在 secret:
+#   FIRMWARE_PAT(不配则退化为 github.token,仅能访问同一仓库)。
+#
+# 用法(手动):
+#   Actions → 选择本 workflow → Run workflow:
+#     keyword       : 填 env 名关键字,如 Opulo_Lumen_REV5 或 Opulo(编所有含 Opulo 的 env)
+#     version       : 产物版本号,留空自动 日期-短SHA
+#     create_release: 打勾则在 release_tag 指定的 tag 上创建 Release(草稿)
+#
+# 用法(被宿主仓库复用,示例 dispatch 矩阵):
+#   on:
+#     workflow_dispatch:
+#   jobs:
+#     build:
+#       strategy:
+#         matrix:
+#           env: [Opulo_Lumen_REV5, Opulo_Lumen_REV4]
+#       uses: <host>/<repo>/.github/workflows/build-firmware.yml@main
+#       with:
+#         keyword: ${{ matrix.env }}
+#         source_repo: Mlxa0324/qingwa-pnp-marlin
+# ==============================================================================
+
+name: Cloud Build Firmware
+
+run-name: 固件打包 ${{ inputs.keyword || 'default' }}${{ inputs.version != '' && format(' · {0}', inputs.version) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      keyword:
+        description: >-
+          PlatformIO 环境名关键字(逗号分隔,大小写不敏感)。匹配名称“包含关键字”的
+          env 都会被编译;留空则编译 platformio.ini 的 default_envs。例: Opulo_Lumen_REV5 / Opulo
+        required: false
+        default: 'Opulo_Lumen_REV5'
+      version:
+        description: '产物版本号(进文件名/zip)。留空自动: YYYYMMDD-HHMMSS-短SHA'
+        required: false
+        default: ''
+      source_repo:
+        description: '要编译的固件仓库 owner/name。留空 = 运行本 workflow 的仓库'
+        required: false
+        default: ''
+      source_ref:
+        description: '要编译的分支/tag/commit。留空 = 当前 ref'
+        required: false
+        default: ''
+      create_release:
+        description: '为 true 时用 release_tag 创建 GitHub Release(草稿)并挂产物'
+        type: boolean
+        required: false
+        default: false
+      release_tag:
+        description: '配合 create_release 使用的 tag,如 v1.2.3'
+        required: false
+        default: ''
+
+  workflow_call:
+    inputs:
+      keyword:
+        type: string
+        required: false
+        default: ''
+      version:
+        type: string
+        required: false
+        default: ''
+      source_repo:
+        type: string
+        required: false
+        default: ''
+      source_ref:
+        type: string
+        required: false
+        default: ''
+      create_release:
+        type: boolean
+        required: false
+        default: false
+      release_tag:
+        type: string
+        required: false
+        default: ''
+    secrets:
+      FIRMWARE_PAT:
+        required: false
+
+concurrency:
+  group: cloud-build-${{ github.workflow }}-${{ inputs.keyword }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # 仅 create_release 需要;平时可降到 read
+  actions: read
+
+jobs:
+  build:
+    name: Build ${{ inputs.keyword || 'default' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Resolve source repository / ref
+        id: src
+        run: |
+          echo "repo=${{ inputs.source_repo != '' && inputs.source_repo || github.repository }}" >> "$GITHUB_OUTPUT"
+          echo "ref=${{ inputs.source_ref != '' && inputs.source_ref || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout firmware source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.src.outputs.repo }}
+          ref: ${{ steps.src.outputs.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.FIRMWARE_PAT != '' && secrets.FIRMWARE_PAT || github.token }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini', 'ini/*.ini') }}-${{ steps.src.outputs.ref }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Install PlatformIO
+        run: |
+          pip install -U platformio
+          pio --version
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          v="${{ inputs.version }}"
+          if [ -z "$v" ]; then
+            sha="$(git rev-parse --short HEAD)"
+            v="$(date +%Y%m%d-%H%M%S)-${sha}"
+          fi
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+          echo "🎯 版本号: ${v}"
+
+      # ---- 核心:按关键字发现 env → 逐个编译 → 收集/改名/打 zip ----
+      - name: Build & package firmware
+        env:
+          KEYWORD: ${{ inputs.keyword }}
+          FW_VERSION: ${{ steps.ver.outputs.version }}
+          GITHUB_STEP_SUMMARY: ${{ github.workspace }}/summary.md
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess, sys, shutil, glob, zipfile, pathlib
+
+          root = os.getcwd()
+          version = os.environ["FW_VERSION"].strip()
+          keyword_raw = os.environ.get("KEYWORD", "").strip()
+
+          # ---- 1) 发现所有 PlatformIO 环境 ----
+          envs = []
+          try:
+              cfg = subprocess.run(["pio", "project", "config"],
+                                   cwd=root, capture_output=True, text=True)
+              out = (cfg.stdout or "") + ("\n" + cfg.stderr if cfg.stderr else "")
+              envs = sorted(set(re.findall(r'^\[env:([^\]]+)\]', out, flags=re.M)))
+          except FileNotFoundError:
+              pass
+
+          # 兜底:pio 命令不可用时解析 ini 文件
+          if not envs:
+              for p in [pathlib.Path("platformio.ini")] + sorted(pathlib.Path("ini").glob("*.ini")):
+                  if p.exists():
+                      envs += re.findall(r'^\s*\[env:([^\]]+)\]', p.read_text(encoding="utf-8", errors="ignore"), flags=re.M)
+              envs = sorted(set(envs))
+
+          # default_envs(备用,keyword 为空时)
+          defaults = []
+          pio_cfg = pathlib.Path("platformio.ini")
+          if pio_cfg.exists():
+              m = re.search(r'^default_envs\s*=\s*(.+)$', pio_cfg.read_text(encoding="utf-8"), flags=re.M)
+              if m:
+                  defaults = [x.strip() for x in m.group(1).split() if x.strip()]
+
+          # ---- 2) 按关键字过滤 ----
+          kws = [k.strip().lower() for k in keyword_raw.split(",") if k.strip()]
+          if kws:
+              selected = [e for e in envs if any(k in e.lower() for k in kws)]
+          else:
+              selected = [e for e in defaults if e in envs] or defaults[:1]
+
+          if not selected:
+              print(f"::error::没有找到匹配的环境。已发现: {envs or '(无)'};关键字: {keyword_raw or '(空→default_envs)'}")
+              sys.exit(1)
+
+          print(f"📦 目标环境: {selected}")
+          print(f"🏷  版本号: {version}")
+
+          # ---- 3) 逐环境编译 ----
+          failed = []
+          for env in selected:
+              print(f"▶ 编译 {env} ...")
+              r = subprocess.run(["pio", "run", "-e", env], cwd=root)
+              if r.returncode != 0:
+                  failed.append(env)
+                  print(f"::error::编译失败: {env}")
+
+          if failed:
+              print(f"::error::以下环境编译失败: {failed}")
+              sys.exit(1)
+
+          # ---- 4) 收集产物 → dist/<env>-<version>/,并打总 zip ----
+          dist = pathlib.Path("dist")
+          shutil.rmtree(dist, ignore_errors=True)
+          dist.mkdir()
+
+          zip_path = dist / f"firmware-{version}.zip"
+          found = []
+          with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+              for env in selected:
+                  bdir = pathlib.Path(".pio/build") / env
+                  for pat in ("firmware.bin", "firmware.hex", "firmware.uf2"):
+                      for src in glob.glob(str(bdir / pat)):
+                          ext = pathlib.Path(src).suffix.lstrip(".")
+                          newname = f"{env}-{version}.{ext}"
+                          zf.write(src, arcname=f"{env}-{version}/{newname}")
+                          found.append(newname)
+                          print(f"✔  {newname}")
+
+          if not found:
+              print("::error::未找到任何 firmware.bin/.hex/.uf2 产物,请检查输出目录 .pio/build/<env>/")
+              sys.exit(1)
+
+          # ---- 5) 写 step summary ----
+          lines = ["## 固件打包完成", "", f"- 版本号: `{version}`",
+                   f"- 目标环境: `{selected}`", f"- 产物: `{zip_path.name}`",
+                   "", "| 文件 |", "| --- |"]
+          for f in found:
+              lines.append(f"| `{f}` |")
+          (pathlib.Path(os.environ.get("GITHUB_STEP_SUMMARY", "")) or pathlib.Path("/dev/null")) \
+              .write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          print(f"✅ 打包完成 → {zip_path} ({sum(1 for _ in found)} 个文件)")
+          PY
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ steps.ver.outputs.version }}
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release == 'true' && inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_tag }}
+          draft: true
+          generate_release_notes: false
+          files: dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.FIRMWARE_PAT != '' && secrets.FIRMWARE_PAT || github.token }}
