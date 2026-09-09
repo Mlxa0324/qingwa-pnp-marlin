@@ -330,7 +330,7 @@ jobs:
           name: ${{ steps.rel.outputs.tag }}
           body_path: ${{ steps.rel.outputs.body_file }}
           files: dist/*.zip
-          update_release: true
+          overwrite_files: true
           draft: false
           generate_release_notes: false
         env:
