@@ -2687,6 +2687,13 @@
 #define SPEAKER
 
 //
+// Power-on sound: a short single "beep" on boot.
+// Tune is a list of { frequency (Hz), duration (ms) } pairs;
+// a frequency of 0 is a silence gap. Requires SPEAKER (or MarlinUI buzzer).
+//
+#define STARTUP_TUNE { 1000, 100 }
+
+//
 // The duration and frequency for the UI feedback sound.
 // Set these to 0 to disable audio feedback in the LCD menus.
 //
