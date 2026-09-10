@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="buildroot/share/pixmaps/logo/qingwa-logo-512.png" alt="Qingwa Pick-and-Place" width="320">
+</p>
+
+<p align="center">
   <b>🐸 Qingwa PnP Firmware · qingwa-pnp-marlin</b><br/>
   A pick-and-place firmware based on Marlin 2.1.x + the Opulo LumenPnP REV5 board
 </p>

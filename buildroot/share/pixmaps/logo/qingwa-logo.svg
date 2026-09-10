@@ -1,0 +1,122 @@
+<svg width="480" height="480" viewBox="0 0 480 480" fill="none"
+     xmlns="http://www.w3.org/2000/svg" role="img" aria-label="青蛙贴片机 Qingwa Pick-and-Place">
+  <defs>
+    <!-- 背景 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0C1410"/>
+      <stop offset="1" stop-color="#040705"/>
+    </linearGradient>
+    <linearGradient id="border" x1="0" y1="0" x2="0" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6EF29A"/>
+      <stop offset="1" stop-color="#1E8C4E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1"
+      gradientTransform="translate(240 168) scale(168 150)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#37E07C" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#37E07C" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 青蛙躯体 -->
+    <linearGradient id="frog" x1="160" y1="90" x2="320" y2="250" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7BF3A6"/>
+      <stop offset="1" stop-color="#28B863"/>
+    </linearGradient>
+    <linearGradient id="frogLimb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5FE08E"/>
+      <stop offset="1" stop-color="#28B863"/>
+    </linearGradient>
+
+    <!-- 吸嘴 -->
+    <linearGradient id="nozzle" x1="222" y1="0" x2="258" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F8FA"/>
+      <stop offset="0.5" stop-color="#C7D3D9"/>
+      <stop offset="1" stop-color="#8E9CA3"/>
+    </linearGradient>
+
+    <!-- 文字 -->
+    <linearGradient id="text" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2FFF7"/>
+      <stop offset="1" stop-color="#BDF3D2"/>
+    </linearGradient>
+
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- 徽章底板 -->
+  <rect x="8" y="8" width="464" height="464" rx="60" fill="url(#bg)"/>
+  <rect x="8" y="8" width="464" height="464" rx="60" fill="none" stroke="url(#border)" stroke-width="4"/>
+  <rect x="20" y="20" width="440" height="440" rx="50" fill="none" stroke="#1E8C4E" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- 背景电路走线 -->
+  <g stroke="#2FBF6A" stroke-opacity="0.35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 96 H104 V140"/>
+    <path d="M60 116 H88"/>
+    <path d="M420 96 H376 V140"/>
+    <path d="M420 116 H392"/>
+    <path d="M76 372 H108 V340"/>
+    <path d="M404 372 H372 V340"/>
+  </g>
+  <g fill="#2FBF6A" fill-opacity="0.55">
+    <circle cx="104" cy="140" r="3.5"/><circle cx="88" cy="116" r="3.5"/>
+    <circle cx="376" cy="140" r="3.5"/><circle cx="392" cy="116" r="3.5"/>
+    <circle cx="108" cy="340" r="3.5"/><circle cx="372" cy="340" r="3.5"/>
+  </g>
+
+  <!-- 青蛙光晕 -->
+  <ellipse cx="240" cy="168" rx="168" ry="150" fill="url(#glow)"/>
+
+  <!-- 悬停阴影 -->
+  <ellipse cx="240" cy="314" rx="86" ry="12" fill="#2FBF6A" fill-opacity="0.18" filter="url(#soft)"/>
+
+  <!-- ===== 青蛙(正面) ===== -->
+  <!-- 后腿/脚 -->
+  <path d="M150 226 q-26 18 -18 44 q4 14 22 10 q14 -4 16 -22 Z" fill="url(#frogLimb)" stroke="#1B7A44" stroke-width="4"/>
+  <path d="M330 226 q26 18 18 44 q-4 14 -22 10 q-14 -4 -16 -22 Z" fill="url(#frogLimb)" stroke="#1B7A44" stroke-width="4"/>
+
+  <!-- 头/身体 -->
+  <ellipse cx="240" cy="164" rx="96" ry="82" fill="url(#frog)" stroke="#1B7A44" stroke-width="5"/>
+
+  <!-- 大眼睛 -->
+  <circle cx="196" cy="104" r="41" fill="#F4FFF8" stroke="#1B7A44" stroke-width="6"/>
+  <circle cx="284" cy="104" r="41" fill="#F4FFF8" stroke="#1B7A44" stroke-width="6"/>
+  <circle cx="199" cy="108" r="18" fill="#0A150E"/>
+  <circle cx="281" cy="108" r="18" fill="#0A150E"/>
+  <circle cx="192" cy="100" r="6.5" fill="#FFFFFF"/>
+  <circle cx="274" cy="100" r="6.5" fill="#FFFFFF"/>
+
+  <!-- 鼻孔 & 微笑 -->
+  <circle cx="226" cy="150" r="3" fill="#1B7A44"/>
+  <circle cx="254" cy="150" r="3" fill="#1B7A44"/>
+  <path d="M204 178 Q240 206 276 178" fill="none" stroke="#1B7A44" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- ===== 手臂抓住吸嘴 ===== -->
+  <path d="M182 196 Q196 236 214 244" fill="none" stroke="url(#frogLimb)" stroke-width="17" stroke-linecap="round"/>
+  <path d="M298 196 Q284 236 266 244" fill="none" stroke="url(#frogLimb)" stroke-width="17" stroke-linecap="round"/>
+  <circle cx="214" cy="245" r="14" fill="#5FE08E" stroke="#1B7A44" stroke-width="4"/>
+  <circle cx="266" cy="245" r="14" fill="#5FE08E" stroke="#1B7A44" stroke-width="4"/>
+
+  <!-- ===== 真空吸嘴 + 贴片元件 ===== -->
+  <!-- 顶座 -->
+  <rect x="221" y="206" width="38" height="12" rx="6" fill="#B9C4C9" stroke="#5A6A70" stroke-width="3"/>
+  <!-- 锥形主体 -->
+  <path d="M228 218 L252 218 L246 288 L234 288 Z" fill="url(#nozzle)" stroke="#5A6A70" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 吸嘴尖 -->
+  <path d="M234 288 L246 288 L240 300 Z" fill="#7C8A90" stroke="#5A6A70" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- 被吸附的贴片元件 -->
+  <rect x="226" y="300" width="28" height="14" rx="3" fill="#0F1512" stroke="#6EF29A" stroke-width="2"/>
+  <rect x="226" y="300" width="7" height="14" rx="2" fill="#C7D3D9"/>
+  <rect x="247" y="300" width="7" height="14" rx="2" fill="#C7D3D9"/>
+  <!-- 放置指示 -->
+  <path d="M240 320 V330" stroke="#6EF29A" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 5"/>
+
+  <!-- ===== 文字 ===== -->
+  <line x1="152" y1="344" x2="328" y2="344" stroke="#2FBF6A" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round"/>
+  <text x="240" y="392" text-anchor="middle" fill="url(#text)"
+        font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif"
+        font-size="48" font-weight="700" letter-spacing="4">青蛙贴片机</text>
+  <text x="240" y="424" text-anchor="middle" fill="#6FE39B"
+        font-family="Helvetica Neue, Arial, sans-serif"
+        font-size="15.5" font-weight="600" letter-spacing="4.5">QINGWA PICK-AND-PLACE</text>
+</svg>

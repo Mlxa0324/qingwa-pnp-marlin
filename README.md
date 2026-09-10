@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="buildroot/share/pixmaps/logo/qingwa-logo-512.png" alt="青蛙贴片机 Qingwa Pick-and-Place" width="320">
+</p>
+
+<p align="center">
   <b>🐸 青蛙贴片机 固件 · qingwa-pnp-marlin</b><br/>
   基于 Marlin 2.1.x + Opulo LumenPnP REV5 主板的贴片机专用固件
 </p>
