@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="buildroot/share/pixmaps/logo/qingwa-logo-512.png" alt="Qingwa Pick-and-Place" width="320">
+  <img src="buildroot/share/pixmaps/logo/qingwa-logo-512.png" alt="Qingwa Pick-and-Place" height="213">
 </p>
 
 <p align="center">
